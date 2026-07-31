@@ -1,0 +1,141 @@
+-- 1. Create ScreenGui and Main Frame
+local ScreenGui = Instance.new("ScreenGui")
+local MainFrame = Instance.new("Frame")
+local MainFrameCorner = Instance.new("UICorner")
+local UIListLayout = Instance.new("UIListLayout")
+local UIPadding = Instance.new("UIPadding")
+
+ScreenGui.Parent = game.CoreGui
+ScreenGui.Name = "SeamlessMenuWithDrag"
+
+-- Main Frame Settings
+MainFrame.Parent = ScreenGui
+MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30) -- Main background color
+MainFrame.Position = UDim2.new(1, -230, 0.25, 0)
+MainFrame.Size = UDim2.new(0, 210, 0, 290) 
+MainFrame.Active = true
+MainFrame.Draggable = true -- Enable main frame dragging
+
+MainFrameCorner.CornerRadius = UDim.new(0, 12)
+MainFrameCorner.Parent = MainFrame
+
+-- UIListLayout automatically sorts elements from top to bottom
+UIListLayout.Parent = MainFrame
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+UIListLayout.Padding = UDim.new(0, 6)
+
+-- Internal padding
+UIPadding.Parent = MainFrame
+UIPadding.PaddingTop = UDim.new(0, 8)
+UIPadding.PaddingBottom = UDim.new(0, 8)
+UIPadding.PaddingLeft = UDim.new(0, 10)
+UIPadding.PaddingRight = UDim.new(0, 10)
+
+-- Top Drag Bar (Blends seamlessly with the main UI color)
+local DragBar = Instance.new("TextLabel")
+DragBar.Parent = MainFrame
+DragBar.Size = UDim2.new(1, 0, 0, 18)
+DragBar.BackgroundColor3 = Color3.fromRGB(30, 30, 30) -- Matches MainFrame color
+DragBar.BackgroundTransparency = 0 -- Opaque with the same color (or use 1 for transparency)
+DragBar.BorderSizePixel = 0
+DragBar.Text = "..." -- Shows only three dots in the center
+DragBar.TextColor3 = Color3.fromRGB(120, 120, 120) -- Subtle gray dots for a clean look
+DragBar.Font = Enum.Font.SourceSansBold
+DragBar.TextSize = 16
+DragBar.LayoutOrder = 0 -- Always on top
+
+-- Text Box input (Rounded corners)
+local TextBox = Instance.new("TextBox")
+local TextBoxCorner = Instance.new("UICorner")
+TextBox.Parent = MainFrame
+TextBox.Size = UDim2.new(1, 0, 0, 32)
+TextBox.PlaceholderText = "Paste code here..."
+TextBox.Text = ""
+TextBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+TextBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+TextBox.Font = Enum.Font.SourceSans
+TextBox.TextSize = 14
+TextBox.LayoutOrder = 1
+
+TextBoxCorner.CornerRadius = UDim.new(0, 8)
+TextBoxCorner.Parent = TextBox
+
+-- Helper function to create rounded design buttons
+local function createRoundButton(text, color, layoutOrder, callback)
+    local Button = Instance.new("TextButton")
+    local ButtonCorner = Instance.new("UICorner")
+    
+    Button.Parent = MainFrame
+    Button.Size = UDim2.new(1, 0, 0, 35)
+    Button.Text = text
+    Button.BackgroundColor3 = color
+    Button.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Button.Font = Enum.Font.SourceSansBold
+    Button.TextSize = 14
+    Button.LayoutOrder = layoutOrder
+    
+    ButtonCorner.CornerRadius = UDim.new(0, 8)
+    ButtonCorner.Parent = Button
+    
+    Button.MouseButton1Click:Connect(callback)
+    return Button
+end
+
+-- 2. Create functional buttons
+
+-- Button 1: Copy Code
+createRoundButton("1. Copy Code", Color3.fromRGB(0, 114, 226), 2, function()
+    if setclipboard then
+        setclipboard(TextBox.Text)
+        print("Code copied to Clipboard!")
+    end
+end)
+
+-- Button 2: Execute Code
+createRoundButton("2. Execute Code", Color3.fromRGB(0, 168, 84), 3, function()
+    local code = TextBox.Text
+    if code ~= "" then
+        local success, err = pcall(function()
+            loadstring(code)()
+        end)
+        if not success then warn("Error: " .. tostring(err)) end
+    end
+end)
+
+-- Button 3: Save Code
+local savedCode = ""
+createRoundButton("3. Save Code", Color3.fromRGB(75, 75, 75), 4, function()
+    savedCode = TextBox.Text
+    print("Code saved successfully!")
+end)
+
+-- Button 4: Load Saved Code
+createRoundButton("4. Load Saved Code", Color3.fromRGB(160, 0, 160), 5, function()
+    TextBox.Text = savedCode
+end)
+
+-- Button 5: Toggle Auto-Execute Loop
+local autoRun = false
+local autoBtn
+autoBtn = createRoundButton("5. Auto Exec: OFF", Color3.fromRGB(214, 40, 40), 6, function()
+    autoRun = not autoRun
+    if autoRun then
+        autoBtn.Text = "5. Auto Exec: ON"
+        autoBtn.BackgroundColor3 = Color3.fromRGB(0, 168, 84)
+        
+        task.spawn(function()
+            while autoRun do
+                local code = TextBox.Text
+                if code ~= "" then
+                    pcall(function()
+                        loadstring(code)()
+                    end)
+                end
+                task.wait(0.1)
+            end
+        end)
+    else
+        autoBtn.Text = "5. Auto Exec: OFF"
+        autoBtn.BackgroundColor3 = Color3.fromRGB(214, 40, 40)
+    end
+end)
